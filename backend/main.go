@@ -1,11 +1,14 @@
 package backend
 
 import (
+	"Sellora-Backend/internal/handlers/auth"
+	"Sellora-Backend/internal/httpx"
+	"Sellora-Backend/internal/middlewares"
 	"Sellora-Backend/internal/store"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/joho/godotenv"
@@ -24,23 +27,42 @@ func main() {
 	store.ConnectPostreSQL()
 	// Create Tables
 	store.CreateTables()
+	// Connect Redis
+	store.ConnectRedis()
 
+	// Chi router
 	router := chi.NewRouter()
 
 	router.Route("/api/v1", func(r chi.Router) {
-		r.Get("/health", func(
-			w http.ResponseWriter,
-			r *http.Request,
-		) {
-			w.Header().Set("Content-Type", "application/json")
-
-			w.WriteHeader(http.StatusOK)
-
-			json.NewEncoder(w).Encode(map[string]any{
-				"message": "Server OK",
+		r.With(
+			middlewares.RateLimitByIP(
+				5,
+				time.Minute,
+			),
+		).Get("/health", func(w http.ResponseWriter, r *http.Request) {
+			httpx.SendJSON(w, 200, map[string]any{
+				"message": "server ok",
 			})
-
 		})
+
+		r.With(
+			middlewares.RateLimitByIP(
+				3,
+				time.Minute,
+			),
+		).Post(
+			"/auth/register", auth.RegisterHandler,
+		)
+
+		r.With(
+			middlewares.RateLimitByIP(
+				5,
+				time.Minute,
+			),
+		).Post(
+			"/auth/login", auth.LoginHandler,
+		)
+
 	})
 
 	// Start server
