@@ -68,9 +68,20 @@ func main() {
 
 		r.With(
 			middlewares.RateLimitByIP(
+				5,
+				time.Minute,
+			),
+			middlewares.RequireAuth,
+		).Delete(
+			"/auth/delete", auth.DeleteUser,
+		)
+
+		r.With(
+			middlewares.RateLimitByIP(
 				10,
 				time.Minute,
 			),
+			middlewares.RequireAuth,
 		).Post(
 			"/products", product.CreateProductHandler,
 		)

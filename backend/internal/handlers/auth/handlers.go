@@ -2,6 +2,7 @@ package auth
 
 import (
 	"Sellora-Backend/internal/httpx"
+	"Sellora-Backend/internal/middlewares"
 	"Sellora-Backend/internal/models"
 	"Sellora-Backend/internal/store"
 	"crypto/sha256"
@@ -326,4 +327,53 @@ func LoginHandler(
 			"refreshToken": randomToken,
 		},
 	)
+}
+
+func DeleteUser(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	ctx := r.Context()
+
+	claims, ok := middlewares.ClaimsFromContext(ctx)
+
+	if !ok {
+		httpx.SendJSON(w, http.StatusUnauthorized, map[string]any{
+			"error": "Unauthorized",
+		})
+		return
+	}
+
+	// HARD DELETE
+	result, err := store.DB.Exec(
+		ctx,
+		`
+		DELETE FROM users
+		WHERE id = $1;
+		`,
+		claims.UserID,
+	)
+
+	if err != nil {
+		httpx.SendJSON(
+			w, http.StatusInternalServerError,
+			map[string]any{
+				"error": "Database error",
+			},
+		)
+		return
+	}
+
+	if result.RowsAffected() == 0 {
+		httpx.SendJSON(
+			w, 404, map[string]any{
+				"error": "user not found",
+			},
+		)
+		return
+	}
+
+	httpx.SendJSON(w, 200, map[string]any{
+		"message": "User deleted successfully",
+	})
 }
