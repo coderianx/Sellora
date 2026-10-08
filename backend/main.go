@@ -1,7 +1,8 @@
-package backend
+package main
 
 import (
 	"Sellora-Backend/internal/handlers/auth"
+	"Sellora-Backend/internal/handlers/product"
 	"Sellora-Backend/internal/httpx"
 	"Sellora-Backend/internal/middlewares"
 	"Sellora-Backend/internal/store"
@@ -29,6 +30,8 @@ func main() {
 	store.CreateTables()
 	// Connect Redis
 	store.ConnectRedis()
+	// Connect B2
+	store.ConnectB2()
 
 	// Chi router
 	router := chi.NewRouter()
@@ -61,6 +64,15 @@ func main() {
 			),
 		).Post(
 			"/auth/login", auth.LoginHandler,
+		)
+
+		r.With(
+			middlewares.RateLimitByIP(
+				10,
+				time.Minute,
+			),
+		).Post(
+			"/products", product.CreateProductHandler,
 		)
 
 	})

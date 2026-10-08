@@ -61,8 +61,49 @@ func CreateTables() {
 			id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 			user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 			token TEXT NOT NULL,
-			expire_at TIMESTAMPT NOT NULL
+			expire_at TIMESTAMP NOT NULL
 		);
 		`,
 	)
+
+	if err != nil {
+		fmt.Println("[ERROR] Creating 'refresh_tokens' table error: ", err)
+		os.Exit(1)
+	}
+
+	_, err = DB.Exec(
+		context.Background(),
+		`
+		CREATE TABLE IF NOT EXISTS products (
+			id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+			name TEXT NOT NULL,
+			description TEXT NOT NULL,
+			price NUMERIC NOT NULL,
+			stock INTEGER NOT NULL DEFAULT 0,
+			categorys TEXT[] NOT NULL,
+			object_keys TEXT[] NOT NULL,
+			created_at TIMESTAMP NOT NULL DEFAULT NOW()
+		);
+		`,
+	)
+
+	if err != nil {
+		fmt.Println("[ERROR] Creating 'products' table error: ", err)
+		os.Exit(1)
+	}
+
+	_, err = DB.Exec(
+		context.Background(),
+		`
+		ALTER TABLE products
+		ADD COLUMN IF NOT EXISTS stock INTEGER NOT NULL DEFAULT 0;
+		`,
+	)
+
+	if err != nil {
+		fmt.Println("[ERROR] Adding 'products.stock' column error: ", err)
+		os.Exit(1)
+	}
+
+	fmt.Println("[INFO] Tables created")
 }
